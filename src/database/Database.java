@@ -6,12 +6,17 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Properties;
 
 public class Database {
     public static Connection conn = null;
 
     public static Connection getConnection() {
+        if (conn != null) {
+            return conn;
+        }
+
         Properties properties = loadProperties();
         String databaseUrl = properties.getProperty("url");
 
@@ -47,5 +52,13 @@ public class Database {
         }
 
         return null;
+    }
+
+    public static void closeStatement(Statement statement) {
+        try {
+            statement.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 }

@@ -1,14 +1,16 @@
 package model.dao.impl;
 
-import model.dao.DataAccessObject;
+import database.Database;
+import database.DatabaseException;
+import model.dao.DepartmentDao;
 import model.entities.Department;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DepartmentDaoJDBC implements DataAccessObject<Department> {
-    private Connection conn;
+public class DepartmentDaoJDBC implements DepartmentDao {
+    private final Connection conn;
 
     public DepartmentDaoJDBC(Connection conn) {
         this.conn = conn;
@@ -16,7 +18,7 @@ public class DepartmentDaoJDBC implements DataAccessObject<Department> {
 
     @Override
     public void insert(Department department) {
-        PreparedStatement statement;
+        PreparedStatement statement = null;
 
         try {
             statement = conn.prepareStatement("INSERT INTO department (name) VALUES (?)");
@@ -24,13 +26,15 @@ public class DepartmentDaoJDBC implements DataAccessObject<Department> {
 
             statement.executeUpdate();
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new DatabaseException(e.getMessage());
+        } finally {
+            Database.closeStatement(statement);
         }
     }
 
     @Override
     public void update(Department department) {
-        PreparedStatement statement;
+        PreparedStatement statement = null;
 
         try {
             statement = conn.prepareStatement("UPDATE department SET name = ? WHERE id = ?");
@@ -39,13 +43,15 @@ public class DepartmentDaoJDBC implements DataAccessObject<Department> {
 
             statement.executeUpdate();
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new DatabaseException(e.getMessage());
+        } finally {
+            Database.closeStatement(statement);
         }
     }
 
     @Override
     public void deleteById(int id) {
-        PreparedStatement statement;
+        PreparedStatement statement = null;
 
         try {
             statement = conn.prepareStatement("DELETE FROM department WHERE id = ?");
@@ -53,7 +59,9 @@ public class DepartmentDaoJDBC implements DataAccessObject<Department> {
 
             statement.executeUpdate();
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new DatabaseException(e.getMessage());
+        } finally {
+            Database.closeStatement(statement);
         }
     }
 
@@ -72,15 +80,15 @@ public class DepartmentDaoJDBC implements DataAccessObject<Department> {
                 return null;
             }
 
-            return new Department(
-                    resultSet.getInt("id"),
-                    resultSet.getString("name")
-            );
+            return instantiateDepartment(resultSet);
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new DatabaseException(e.getMessage());
+        } finally {
+            Database.closeStatement(statement);
+
+            return null;
         }
 
-        return null;
     }
 
     @Override
@@ -93,15 +101,23 @@ public class DepartmentDaoJDBC implements DataAccessObject<Department> {
             ResultSet resultSet = statement.executeQuery("SELECT * FROM department");
 
             while (resultSet.next()) {
-                departments.add(new Department(
-                        resultSet.getInt("id"),
-                        resultSet.getString("name")
-                ));
+                departments.add(
+                        instantiateDepartment(resultSet)
+                );
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new DatabaseException(e.getMessage());
+        } finally {
+            Database.closeStatement(statement);
         }
 
         return departments;
+    }
+
+    public Department instantiateDepartment(ResultSet resultSet) throws SQLException {
+        return new Department(
+                resultSet.getInt("id"),
+                resultSet.getString("name")
+        );
     }
 }
